@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>canvas</title>
+	<style type="text/css">
+		#canvas_bg {
+			position: absolute;
+			left: calc(50vw - 300px);
+			top: 5px;
+			z-index: 0;
+			border: 5px white solid;
+		}
+		#start_button {
+			position: absolute;
+			left: calc(50vw - 75px);
+			top: calc(50vh - 25px);
+			background-color: #FFFFFF;
+			border: solid 2px #000000;
+			font-size: 40px;
+			width: 150px;
+			height: 50px;
+			z-index: 2;
+		}
+		body {
+			background-color: #000000;
+		}
+		#HP {
+			color: white;
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			font-size: 30px;
+			font-family: "微軟正黑體";
+			float: left;
+		}
+	</style>
+	<script type="text/javascript">
+		//key event
+		var key = {
+			left: false,
+			up: false,
+			right: false,
+			down: false,
+			space: false
+		};
+		function keyEvent(event) {
+			var key_pressed = event.keyCode || event.which;
+			switch (key_pressed) {
+				case 37:
+				case 65:
+					key.left = true;
+					break;
+				case 38:
+				case 87:
+					key.up = true;
+					break;
+				case 39:
+				case 68:
+					key.right = true;
+					break;
+				case 40:
+				case 83:
+					key.down = true;
+					break;
+				case 32:
+					key.space = true;
+					break;
+			}
+		}
+		//image
+		function keyEventEnd(event) {
+			var key_pressed = event.keyCode || event.which;
+			switch (key_pressed) {
+				case 37:
+				case 65:
+					key.left = false;
+					break;
+				case 38:
+				case 87:
+					key.up = false;
+					break;
+				case 39:
+				case 68:
+					key.right = false;
+					break;
+				case 40:
+				case 83:
+					key.down = false;
+					break;
+				case 32:
+					key.space = false;
+					break;
+			}
+		}
+		var m_bullets = new Array();
+		var enemies = new Array();
+		var e_bullets = new Array();
+		var game = {
+			tick: 0,
+			ticking: true,
+			waiting: undefined,
+			freeze: function() {
+				++this.tick;
+				this.ticking = false;
+				var me = this;
+				this.waiting = setInterval(function() {
+					if(enemies.length === 0) {
+						me.ticking = true;
+						clearInterval(me.waiting);
+					}
+				}, 10);
+			},
+		};
+		function start() {
+			//declare
+			document.getElementById("start_button").style.visibility = "collapse";
+			var canvas = document.getElementById("canvas");
+			var ctx = canvas.getContext("2d");
+			var ani_frame;
+			var frame = {
+				x: canvas.width,
+				y: canvas.height,
+			}
+			var main = {
+  				x: frame.x/2,
+  				y: frame.y/2,
+  				x_v: 5,
+  				y_v: 5,
+  				radius: 15,
+  				attack: 1,
+  				health: 100,
+  				img: {
+  					img: new Image(),
+  					timer: 0,
+  					width: 42,
+					height: 32,
+				},
+				show: {
+					width: 50,
+					height: 40,
+				},
+				attack_timer: 0,
+  				draw: function() {
+  					if (this.img.timer>=80) this.img.timer = 0;
+					var init = Math.floor(this.img.timer/20)*this.img.width;
+ 			    	ctx.drawImage(this.img.img,init,0,this.img.width,this.img.height,this.x-(this.show.width/2),this.y-(this.show.height/2),this.show.width,this.show.height);
+  					++this.img.timer;
+
+  					if(this.attack_timer>0) --this.attack_timer;
+
+  					document.getElementById("HP").innerHTML = " HP: " + this.health;
+				},
+				left_move: function() {
+					this.x -= this.x_v;
+					if(outOfFrame(this)) this.x += this.x_v;
+				},
+				up_move: function() {
+					this.y -= this.y_v;
+					if(outOfFrame(this)) this.y += this.y_v;
+				},
+				right_move: function() {
+					this.x += this.x_v;
+					if(outOfFrame(this)) this.x -= this.x_v;
+				},
+				down_move: function() {
+					this.y += this.y_v;
+					if(outOfFrame(this)) this.y -= this.y_v;
+				},
+				bullet: {
+					x: 0,
+					y: 0,
+					y_v: -10,
+					radius: 3,
+					attack: 5,
+					color: "white",
+					draw: function() {
+						ctx.beginPath();
+						ctx.arc(this.x,this.y,3,0,2*Math.PI,false);
+						ctx.fillStyle = this.color;
+						ctx.fill();
+						ctx.closePath();
+					},
+					move: function() {
+						this.y += this.y_v;
+					}
+				},
+				attack: function() {
+					if (this.attack_timer===0) {
+						var new_bullet = Object.assign({},this.bullet);
+						new_bullet.x=this.x;
+						new_bullet.y=this.y;
+						m_bullets.push(new_bullet);
+						this.attack_timer=5;
+					}
+				}
+			};
+			main.img.img.src = "img/main.png";
+			function outOfFrame(obj) {
+				if(obj.x<0||obj.y<0||obj.x>frame.x||obj.y>frame.y) return true;
+				return false;
+			}
+		//enemy
+			var enemy_sample = {
+				name: "",
+				x: 0,
+				y: 0,
+				x_v: 0,
+				y_v: 0,
+				x_a: 0,
+				y_a: 0,
+				health: 0,
+				radius: 0,
+				attack: 0,
+				cd: 0,
+				attack_timer: 0,
+				img: undefined,
+				img_timer: 0,
+				img_width: 0,
+				img_height: 0,
+				show_width: 0,
+				show_height: 0,
+				draw: function() {
+					if (this.img_timer>=80) this.img_timer = 0;
+					var init = Math.floor(this.img_timer/20)*this.img_width;
+ 			    	ctx.drawImage(this.img,init,0,this.img_width,this.img_height,this.x-(this.show_width/2),this.y-(this.show_height/2),this.show_width,this.show_height);
+  					++this.img_timer;
+				},
+				move: function() {
+					this.x += this.x_v;
+					this.y += this.y_v;
+					this.x_v += this.x_a;
+					this.y_v += this.y_a;
+				},
+				skill: function() {},
+				bullet: undefined,
+			}
+			var bullet_sample = {
+				x: 0,
+				y: 0,
+				x_v: 0,
+				y_v: 0,
+				radius: 5,
+				attack: 0,
+				color: "",
+				draw: function() {
+					ctx.beginPath();
+					ctx.arc(this.x,this.y,this.radius,0,2*Math.PI,false);
+					ctx.fillStyle = this.color;
+					ctx.fill();
+					ctx.closePath();
+				},
+				move: function() {
+					this.x += this.x_v;
+					this.y += this.y_v;
+				},
+				skill: function() {},
+			}
+			// enemy1
+			var enemy1 = Object.assign({},enemy_sample);
+			enemy1.name = "enemy1";
+			enemy1.img = new Image();
+			enemy1.img.src = "img/enemy1.png";
+			enemy1.img_width = 40;
+			enemy1.img_height = 37;
+			enemy1.show_width = 50;
+			enemy1.show_height = 48;
+			enemy1.health = 25;
+			enemy1.radius = 25;
+			enemy1.attack = 3;
+			// enemy2
+			var enemy2 = Object.assign({},enemy_sample);
+			enemy2.name = "enemy2";
+			enemy2.img = new Image();
+			enemy2.img.src = "img/enemy2.png";
+			enemy2.img_width = 40;
+			enemy2.img_height = 37;
+			enemy2.show_width = 50;
+			enemy2.show_height = 48;
+			enemy2.health = 100;
+			enemy2.radius = 25;
+			enemy2.attack = 1;
+			enemy2.bullet = Object.assign({},bullet_sample);
+			enemy2.bullet.attack = 10;
+			enemy2.bullet.color = "red";
+			enemy2.stopable = false;
+			enemy2.skill = function() {
+				//stop moving
+				if(this.stopable && this.y_v<=0){
+					this.y_a = 0;
+					this.y_v = 0;
+				}
+				//attack
+				if(this.attack_timer>=this.cd) {
+					var new_bullet = Object.assign({},this.bullet);
+					new_bullet.x = this.x;
+					new_bullet.y = this.y;
+					var tan = (main.x-this.x)/(main.y-this.y);
+					var cos = ((main.y<this.y)?-1:1)/Math.sqrt(tan*tan+1);
+					var sin = tan*cos;
+					new_bullet.x_v = 3*sin;
+					new_bullet.y_v = 3*cos;
+					e_bullets.push(new_bullet);
+					this.attack_timer = 0;
+				}
+				++this.attack_timer;
+			};
+			//enemy3
+			var enemy3 = Object.assign({},enemy_sample);
+			enemy3.name = "enemy3";
+			enemy3.img = new Image();
+			enemy3.img.src = "img/enemy3.png";
+			enemy3.img_width = 40;
+			enemy3.img_height = 37;
+			enemy3.show_width = 70;
+			enemy3.show_height = 65;
+			enemy3.health = 200;
+			enemy3.radius = 35;
+			enemy3.attack = 1;
+			enemy3.bullet = Object.assign({},bullet_sample);
+			enemy3.bullet.attack = 15;
+			enemy3.bullet.color = "yellow";
+			enemy3.bullet.radius = 8;
+			enemy3.stopable = false;
+			enemy3.skill = function() {
+				//stop moving
+				if(this.stopable && this.y_v<=0){
+					this.y_a = 0;
+					this.y_v = 0;
+				}
+				//attack
+				if(this.attack_timer>=this.cd) {
+					for(var i=0; i<3;++i) {
+						var new_bullet = Object.assign({},this.bullet);
+						new_bullet.x = this.x;
+						new_bullet.y = this.y;
+						var angle = (i-1)*Math.PI/5
+						new_bullet.x_v = 6*Math.sin(angle);
+						new_bullet.y_v = 6*Math.cos(angle);
+						e_bullets.push(new_bullet);
+					}
+					this.attack_timer = 0;
+				}
+				++this.attack_timer;
+			};
+			//enemy4 (boss1)
+			var enemy4 = Object.assign({},enemy_sample);
+			enemy4.name = "enemy4";
+			enemy4.img = new Image();
+			enemy4.img.src = "img/enemy4.png";
+			enemy4.img_width = 40;
+			enemy4.img_height = 46;
+			enemy4.show_width = 80;
+			enemy4.show_height = 92;
+			enemy4.health = 1500;
+			enemy4.radius = 40;
+			enemy4.attack = 3;
+			enemy4.bullet = Object.assign({},bullet_sample);
+			enemy4.bullet.attack = 20;
+			enemy4.bullet.color = "cyan";
+			enemy4.bullet.radius = 18;
+			enemy4.stopable = false;
+			enemy4.phi = 0;
+			enemy4.skill = function() {
+				//stop moving
+				if(this.stopable && this.y_v<=0){
+					this.y_a = 0;
+					this.y_v = 0;
+				}
+				//attack
+				if(this.attack_timer>=this.cd) {
+					for(var i=-7; i<=8;++i) {
+						var new_bullet = Object.assign({},this.bullet);
+						new_bullet.x = this.x;
+						new_bullet.y = this.y;
+						var angle = this.phi*Math.PI/32 + i*Math.PI/8;
+						new_bullet.x_v = 2*Math.sin(angle);
+						new_bullet.y_v = 2*Math.cos(angle);
+						e_bullets.push(new_bullet);
+					}
+					++this.phi;
+					if(this.phi==4) {
+						for(var i=-1;i<=1;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = this.x;
+							new_enemy.y = this.y;
+							new_enemy.x_v = i;
+							new_enemy.y_v = -6;
+							new_enemy.y_a = 0.1;
+							new_enemy.show_width = 70;
+							new_enemy.show_height = 66;
+							new_enemy.radius = 35;
+							new_enemy.health = 150;
+							enemies.push(new_enemy);
+						}
+					} else if(this.phi==6) {
+						for(var i=0;i<4;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = this.x;
+							new_enemy.y = this.y;
+							new_enemy.x_v = i-1.5;
+							new_enemy.y_v = -6;
+							new_enemy.y_a = 0.1;
+							new_enemy.show_width = 70;
+							new_enemy.show_height = 66;
+							new_enemy.radius = 35;
+							new_enemy.health = 150;
+							enemies.push(new_enemy);
+						}
+					} else if(this.phi>=8) {
+						this.phi = 0;
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy3);
+							new_enemy.x = this.x;
+							new_enemy.y = this.y;
+							new_enemy.x_v = (i===0)?-1:1;
+							new_enemy.health = 100;
+							new_enemy.cd = 50;
+							enemies.push(new_enemy);
+						}
+					}
+					this.attack_timer = 0;
+				}
+				++this.attack_timer;
+			};
+		//draw
+			var bg = new Image();
+			bg.src = "img/bg.png";
+			function clear_all() { //turn the screen to black
+				var init;
+				if(game.tick<=2650) init = 75;
+				else if(game.tick>=2950) init = 0;
+				else init = 75*(1-(game.tick-2650)/300);
+				ctx.drawImage(bg,0,init,100,125,0,0,canvas.width,canvas.height);
+			}
+			function draw_frame() {
+				clear_all();
+				main.draw();
+				for(var i=0;i<enemies.length;++i) {
+					enemies[i].draw();
+					enemies[i].skill();
+				}
+				for(var i=0;i<m_bullets.length;++i) {
+					m_bullets[i].draw();
+				}
+				for(var i=0;i<e_bullets.length;++i) {
+					e_bullets[i].draw();
+				}
+				ani_frame = window.requestAnimationFrame(draw_frame);
+			}
+		//attack judgement
+			function attackedBy(me, others) {
+				for(var i=0;i<others.length;++i) {
+					if(Math.sqrt((me.x-others[i].x)*(me.x-others[i].x)+(me.y-others[i].y)*(me.y-others[i].y))<=me.radius+others[i].radius) return others[i].attack;
+				}
+				return 0;
+			}
+		//gamestart
+			draw_frame();
+			setInterval(function(){
+				//main move
+				if(key.left) {
+					main.left_move();
+				}
+				if(key.up) {
+					main.up_move();
+				}
+				if(key.right) {
+					main.right_move();
+				}
+				if(key.down) {
+					main.down_move();
+				}
+				if(key.space) {
+					main.attack();
+				}
+				//main injured
+				main.health -= attackedBy(main,e_bullets);
+				main.health -= attackedBy(main,enemies);
+				//enemy move and injured
+				for(var i=0;i<enemies.length;++i) {
+					if(outOfFrame(enemies[i])||enemies[i].health<=0) {
+						enemies.splice(i,1);
+						break;
+					}
+					enemies[i].health -= attackedBy(enemies[i],m_bullets);
+					enemies[i].move();
+				}
+				for(var i=0;i<m_bullets.length;++i) {
+					if(outOfFrame(m_bullets[i])||attackedBy(m_bullets[i],enemies)!=0) {
+						m_bullets.splice(i,1);
+						break;
+					}
+					m_bullets[i].move();
+				}
+				for(var i=0;i<e_bullets.length;++i) {
+					var mains = [];
+					mains.push(main);
+					if(outOfFrame(e_bullets[i])||attackedBy(e_bullets[i],mains)!=0) {
+						e_bullets.splice(i,1);
+						break;
+					}
+					e_bullets[i].move();
+				}
+				//time table
+				switch (game.tick) {
+					case 250:
+						for(var i=0;i<3;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = 100*i+200;
+							new_enemy.y_v = 2;
+							enemies.push(new_enemy);
+						}
+						break;
+					case 500:
+						for(var i=0;i<5;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = 100*i+100;
+							new_enemy.y_v = 2-0.1*(i-2)*(i-2);
+							enemies.push(new_enemy);
+						}
+						break;
+					case 800:
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy2);
+							new_enemy.x = 300*i+150;
+							new_enemy.y_v = 4;
+							new_enemy.y_a = -0.035;
+							new_enemy.cd = 40;
+							new_enemy.stopable = true;
+							enemies.push(new_enemy);
+						}
+						game.freeze();
+						break;
+					case 950:
+					case 1100:
+					case 1250:
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy2);
+							new_enemy.x = 500*i+50;
+							new_enemy.y_v = 5;
+							new_enemy.y_a = -0.02;
+							new_enemy.cd = 60;
+							enemies.push(new_enemy);
+						}
+						break;
+					case 1810:
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy2);
+							new_enemy.x = 300*i+150;
+							new_enemy.y_v = 2;
+							new_enemy.y_a = -0.02;
+							new_enemy.cd = 30;
+							new_enemy.stopable = true;
+							enemies.push(new_enemy);
+						}
+						break;
+					case 1800:
+					case 1960:
+					case 2120:
+						for(var i=0;i<3;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = 180*i+40;
+							new_enemy.y_v = 3;
+							new_enemy.show_width = 80;
+							new_enemy.show_height = 80;
+							new_enemy.radius = 40;
+							enemies.push(new_enemy);
+						}
+						break;
+					case 1880:
+					case 2040:
+					case 2200:
+						for(var i=0;i<3;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = 560-180*i;
+							new_enemy.y_v = 3;
+							new_enemy.show_width = 80;
+							new_enemy.show_height = 80;
+							new_enemy.radius = 40;
+							enemies.push(new_enemy);
+						}
+						break;
+					case 2210:
+						game.freeze();
+						break;
+					case 2400:
+						var new_enemy = Object.assign({},enemy3);
+						new_enemy.x = 300;
+						new_enemy.y_v = 1.5;
+						new_enemy.y_a = -0.02;
+						new_enemy.cd = 50;
+						new_enemy.stopable = true;
+						enemies.push(new_enemy);
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy2);
+							new_enemy.x = 300*i+150;
+							new_enemy.y_v = 3;
+							new_enemy.y_a = -0.02;
+							new_enemy.cd = 30;
+							new_enemy.stopable = true;
+							enemies.push(new_enemy);
+						}
+						game.freeze();
+						break;
+					case 2550:
+						var new_enemy = Object.assign({},enemy2);
+						new_enemy.x = 300;
+						new_enemy.y_v = 2;
+						new_enemy.y_a = -0.02;
+						new_enemy.cd = 40;
+						new_enemy.stopable = true;
+						enemies.push(new_enemy);
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy3);
+							new_enemy.x = 600*i;
+							new_enemy.y = 80;
+							new_enemy.x_v = (i===0)?1:-1;
+							new_enemy.cd = 25;
+							new_enemy.health = 150;
+							enemies.push(new_enemy);
+						}
+						game.freeze();
+						break;
+					case 2900:
+						var new_enemy = Object.assign({},enemy4);
+						new_enemy.x = 300;
+						new_enemy.y_v = 3;
+						new_enemy.y_a = -0.02;
+						new_enemy.cd = 200;
+						new_enemy.stopable = true;
+						enemies.push(new_enemy);
+						break;
+					case 3100:
+						for(var i=0;i<2;++i) {
+							var new_enemy = Object.assign({},enemy2);
+							new_enemy.x = 300;
+							new_enemy.y_v = (i===0)?1.3:2;
+							new_enemy.y_a = -0.02;
+							new_enemy.cd = 60;
+							new_enemy.stopable = true;
+							enemies.push(new_enemy);
+						}
+						break;
+				}
+				if(game.ticking) ++game.tick;
+			},20);
+		}
+	</script>
+</head>
+<body onkeydown="keyEvent(event)" onkeyup="keyEventEnd(event)">
+	<div id="canvas_bg">
+		<div id="HP"></div>
+		<canvas id="canvas" width="600" height="750"></canvas>
+	</div>
+	<button id="start_button" onclick="start()">START</button>
+</body>
+</html>
