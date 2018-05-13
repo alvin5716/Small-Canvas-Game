@@ -121,6 +121,7 @@
 		var m_bullets = new Array();
 		var enemies = new Array();
 		var e_bullets = new Array();
+		var effects = new Array();
 		var game = {
 			point: 0,
 			tick: 0,
@@ -237,9 +238,26 @@
 				return false;
 			}
 			function outOfWorld(obj) {
-				if(obj.x<-20||obj.y<-20||obj.x>frame.x+20||obj.y>frame.y+20) return true;
+				if(obj.x<-30||obj.y<-30||obj.x>frame.x+30||obj.y>frame.y+30) return true;
 				return false;
 			}
+		//effect
+			var smoke = {
+				x: 0,
+				y: 0,
+				lifetime: 35,
+				img: new Image(),
+				img_width: 32,
+				img_height: 32,
+				radius: 0,
+				max_radius: 0,
+				draw: function() {
+					this.radius = this.max_radius*(40-this.lifetime)/40;
+					ctx.drawImage(this.img,0,0,this.img_width,this.img_height,this.x-(this.radius),this.y-(this.radius),this.radius*2,this.radius*2);
+					--this.lifetime;
+				},
+			};
+			smoke.img.src = "img/smoke.png";
 		//enemy
 			var enemy_sample = {
 				name: "",
@@ -281,6 +299,13 @@
 					this.x_v += this.x_a;
 					this.y_v += this.y_a;
 				},
+				dead: function() {
+					var new_effect = Object.assign({},smoke);
+					new_effect.max_radius = this.radius;
+					new_effect.x = this.x;
+					new_effect.y = this.y;
+					effects.push(new_effect);
+				},
 				bullet: undefined,
 				skill: function() {},
 			}
@@ -314,7 +339,7 @@
 			enemy1.img_height = 37;
 			enemy1.show_width = 50;
 			enemy1.show_height = 48;
-			enemy1.health = 25;
+			enemy1.health = 30;
 			enemy1.radius = 25;
 			enemy1.attack = 2;
 			enemy1.loot = 25;
@@ -406,48 +431,51 @@
 			enemy4.radius = 40;
 			enemy4.attack = 5;
 			enemy4.bullet = Object.assign({},bullet_sample);
-			enemy4.bullet.attack = 20;
+			enemy4.bullet.attack = 15;
 			enemy4.bullet.color = "cyan";
-			enemy4.bullet.radius = 30;
+			enemy4.bullet.radius = 15;
 			enemy4.stopable = true;
 			enemy4.phi = 0;
 			enemy4.loot = 200;
 			enemy4.bullet_v = 5;
-			enemy4.bullet_count = 20;
+			enemy4.bullet_count = 30;
 			enemy4.cd = 200;
 			enemy4.phase = 1;
 			enemy4.skill = function() {
+				//second phase
+				if(this.phase!=2 && this.health<=1000){
+					this.phase = 2;
+					this.img.src = "img/enemy4_2.png";
+					this.bullet.radius = 32;
+					this.bullet_v = 1.2;
+					this.bullet_count = 12;
+					this.bullet.color = "#8823F4";
+					this.attack_timer = 0;
+					setTimeout(()=>{
+						this.phi = 0;
+						this.attack_timer = 0;
+						this.cd = 140;
+					}, 1000);
+				}
 				//stop moving
 				if(this.stopable && this.y_v<=0){
 					this.y_a = 0;
 					this.y_v = 0;
 				}
-				//second phase
-				if(this.phase!=2 && this.health<=1000){
-					this.phase = 2;
-					this.img.src = "img/enemy4_2.png";
-					this.bullet.radius = 35;
-					this.bullet_v = 2;
-					this.bullet_count = 10;
-					enemy4.bullet.color = "#8823F4";
-					this.attack_timer = 0;
-					setTimeout(()=>{
-						this.attack_timer = 0;
-						this.cd = 120;
-					}, 2000);
-				}
 				//attack
 				if(this.attack_timer>=this.cd) {
-					for(var i=-(this.bullet_count/2)+1; i<=this.bullet_count/2;++i) {
-						var new_bullet = Object.assign({},this.bullet);
-						new_bullet.x = this.x;
-						new_bullet.y = this.y;
-						var angle = this.phi*Math.PI/(this.bullet_count*2) + i*Math.PI/(this.bullet_count/2);
-						new_bullet.x_v = this.bullet_v*Math.sin(angle);
-						new_bullet.y_v = this.bullet_v*Math.cos(angle);
-						e_bullets.push(new_bullet);
-					}
 					++this.phi;
+					if(!((this.phi==4||this.phi==8)&&this.phase==1)){
+						for(var i=-(this.bullet_count/2)+1; i<=this.bullet_count/2;++i) {
+							var new_bullet = Object.assign({},this.bullet);
+							new_bullet.x = this.x;
+							new_bullet.y = this.y;
+							var angle = this.phi*Math.PI/(this.bullet_count*2) + i*Math.PI/(this.bullet_count/2);
+							new_bullet.x_v = this.bullet_v*Math.sin(angle);
+							new_bullet.y_v = this.bullet_v*Math.cos(angle);
+							e_bullets.push(new_bullet);
+						}
+					}
 					if(this.phi==4) {
 						for(var i=-1;i<=1;++i){
 							var new_enemy = Object.assign({},enemy1);
@@ -459,9 +487,8 @@
 							new_enemy.show_width = 70;
 							new_enemy.show_height = 66;
 							new_enemy.radius = 35;
-							new_enemy.health = 50;
-							new_enemy.bounceable = true;
 							new_enemy.loot = 0;
+							new_enemy.health = 100;
 							enemies.push(new_enemy);
 						}
 					} else if(this.phi>=8) {
@@ -516,10 +543,29 @@
 		//gamestart
 			draw_frame();
 			setInterval(function(){
+				//main injured, move
+				if(!game.end) {
+					if(key.left) {
+						main.left_move();
+					}
+					if(key.up) {
+						main.up_move();
+					}
+					if(key.right) {
+						main.right_move();
+					}
+					if(key.down) {
+						main.down_move();
+					}
+					if(key.space) {
+						main.attack();
+					}
+					main.health -= attackedBy(main,e_bullets);
+					main.health -= attackedBy(main,enemies);
+				}
 				//main die
 				if(main.health<=0 && !game.end) {
 					game.end = true;
-					enemies.splice(0,enemies.length);
 					var new_enemy = Object.assign({},enemy1);
 					new_enemy.health = 10000;
 					new_enemy.show_width = 0;
@@ -529,31 +575,11 @@
 					main.show_height = 0;
 					game.freeze();
 				}
-				//main move
-				if(key.left) {
-					main.left_move();
-				}
-				if(key.up) {
-					main.up_move();
-				}
-				if(key.right) {
-					main.right_move();
-				}
-				if(key.down) {
-					main.down_move();
-				}
-				if(key.space) {
-					main.attack();
-				}
-				//main injured
-				if(!game.end) {
-					main.health -= attackedBy(main,e_bullets);
-					main.health -= attackedBy(main,enemies);
-				}
 				//enemy move and injured
 				for(var i=0;i<enemies.length;++i) {
 					if(enemies[i].health<=0) {
 						game.point += enemies[i].loot;
+						enemies[i].dead();
 						document.getElementById("Point").innerHTML = "Point: " + game.point;
 					}
 					if(outOfWorld(enemies[i])||enemies[i].health<=0) {
@@ -563,7 +589,7 @@
 						} else {
 							enemies.splice(i,1);
 						}
-						break;
+						continue;
 					}
 					enemies[i].health -= attackedBy(enemies[i],m_bullets);
 					enemies[i].move();
@@ -571,16 +597,23 @@
 				for(var i=0;i<m_bullets.length;++i) {
 					if(outOfFrame(m_bullets[i])||attackedBy(m_bullets[i],enemies)!=0) {
 						m_bullets.splice(i,1);
-						break;
+						continue;
 					}
 					m_bullets[i].move();
 				}
 				for(var i=0;i<e_bullets.length;++i) {
 					if(outOfWorld(e_bullets[i])||attackedBy(e_bullets[i],mains)!=0) {
 						e_bullets.splice(i,1);
-						break;
+						continue;
 					}
 					e_bullets[i].move();
+				}
+				for(var i=0;i<effects.length;++i) {
+					if(effects[i].lifetime <= 0) {
+						effects.splice(i,1);
+						continue;
+					}
+					effects[i].draw();
 				}
 				//time table
 				switch (game.tick) {
@@ -709,7 +742,7 @@
 						new_enemy.x = 300;
 						new_enemy.y_v = 1;
 						new_enemy.x_v = 1;
-						new_enemy.y_a = 0.03;
+						new_enemy.y_a = 0.015;
 						new_enemy.cd = 40;
 						new_enemy.health = 300;
 						new_enemy.bounceable = true;
@@ -729,7 +762,7 @@
 							new_enemy.x = 300;
 							new_enemy.y_v = (i===0)?1.3:2;
 							new_enemy.y_a = -0.02;
-							new_enemy.cd = 80;
+							new_enemy.cd = 120;
 							new_enemy.stopable = true;
 							new_enemy.loot = 0;
 							enemies.push(new_enemy);
