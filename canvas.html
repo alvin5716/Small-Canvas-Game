@@ -21,8 +21,8 @@
 			height: 50px;
 			z-index: 2;
 			position: absolute;
-			left: calc(50vw - 75px);
-			top: calc(50vh - 25px);
+			left: calc(50% + 100px);
+			top: calc(50% - 25px);
 		}
 		body {
 			background-color: #000000;
@@ -30,16 +30,16 @@
 		#Point {
 			color: white;
 			position: absolute;
-			top: 10px;
-			right: 10px;
+			top: 350px;
+			left: 50px;
 			font-size: 30px;
 			font-family: "微軟正黑體";
 		}
 		#HP {
 			color: white;
 			position: absolute;
-			top: 10px;
-			left: 10px;
+			top: 280px;
+			left: 50px;
 			font-size: 30px;
 			font-family: "微軟正黑體";
 		}
@@ -247,11 +247,13 @@
 				y: 0,
 				lifetime: 35,
 				img: new Image(),
+				img_width: 32,
+				img_height: 32,
 				radius: 0,
 				max_radius: 0,
 				draw: function() {
 					this.radius = this.max_radius*(40-this.lifetime)/40;
-					ctx.drawImage(this.img,this.x-this.radius,this.y-this.radius,this.radius*2,this.radius*2);
+					ctx.drawImage(this.img,0,0,this.img_width,this.img_height,this.x-(this.radius),this.y-(this.radius),this.radius*2,this.radius*2);
 					--this.lifetime;
 				},
 			};
@@ -303,7 +305,6 @@
 					new_effect.x = this.x;
 					new_effect.y = this.y;
 					effects.push(new_effect);
-					console.log(effects);
 				},
 				bullet: undefined,
 				skill: function() {},
@@ -446,14 +447,14 @@
 					this.phase = 2;
 					this.img.src = "img/enemy4_2.png";
 					this.bullet.radius = 32;
-					this.bullet_v = 1.5;
+					this.bullet_v = 1.2;
 					this.bullet_count = 12;
 					this.bullet.color = "#8823F4";
 					this.attack_timer = 0;
 					setTimeout(()=>{
 						this.phi = 0;
 						this.attack_timer = 0;
-						this.cd = 120;
+						this.cd = 140;
 					}, 1000);
 				}
 				//stop moving
@@ -573,8 +574,25 @@
 					main.show_width = 0;
 					main.show_height = 0;
 					game.ticking = false;
-					game.tick = 3600;
 					main.health = 0;
+					var list = document.getElementById("list");
+					list.style.visibility = "visible";
+					var pass = (main.health>0 ? "Congratulation!" : "You Loss...");
+					if(main.health<=0){
+						var gamepoint = 0;
+					}	
+					else if(game.time<=15000){
+						var gamepoint = (-(game.time/410)*(game.time/410)+1435.8);
+					}
+					else{
+						var gamepoint = 100;
+					} 					
+					game.total_point = (game.point+Math.round(gamepoint)+main.health*5);
+					list.innerHTML = pass + 
+						"<br><br>Point: " + game.point +
+						"<br>Time: " + Math.round(game.time/50) + " sec" +
+						"<br>Health: " + main.health +
+						"<br><br>Total Point: " + game.total_point;
 				}
 				//enemy move and injured
 				for(var i=0;i<enemies.length;++i) {
@@ -789,13 +807,14 @@
 						game.total_point = (game.point+Math.round(gamepoint)+main.health*5);
 						list.innerHTML = pass + 
 							"<br><br>Point: " + game.point +
-							"<br>Time: " + Math.round(game.time/50) + " sec"+
+							"<br>Time: " + Math.round(game.time/50) + " sec" +
 							"<br>Health: " + main.health +
 							"<br><br>Total Point: " + game.total_point;
 						break;
 				}
 				if(game.ticking) ++game.tick;
 				if(!game.end) ++game.time;
+				
 			},20);
 		}
 	</script>
@@ -803,10 +822,11 @@
 <body onkeydown="keyEvent(event)" onkeyup="keyEventEnd(event)">
 	<div id="canvas_bg">
 		<canvas id="canvas" width="600" height="750"></canvas>
+		<button id="start_button" onclick="start()">START</button>
+		<img src="img/read.png" style="width:300px;float:left;">
 		<div id="Point"></div>
 		<div id="HP"></div>
 	</div>
-	<button id="start_button" onclick="start()">START</button>
 	<div id="list"></div>
 </body>
 </html>
