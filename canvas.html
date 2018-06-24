@@ -158,7 +158,7 @@
   				y: frame.y/2,
   				x_v: 5,
   				y_v: 5,
-  				radius: 12,
+  				radius: 10,
   				attack: 1,
   				health: 100,
   				img: new Image(),
@@ -572,8 +572,9 @@
 					enemies.push(new_enemy);
 					main.show_width = 0;
 					main.show_height = 0;
-					game.tick = 3600;
 					game.ticking = false;
+					game.tick = 3600;
+					main.health = 0;
 				}
 				//enemy move and injured
 				for(var i=0;i<enemies.length;++i) {
@@ -615,6 +616,9 @@
 					}
 					effects[i].draw();
 				}
+				
+				
+				
 				//time table
 				switch (game.tick) {
 					case 250:
@@ -772,8 +776,18 @@
 					case 3600:
 						var list = document.getElementById("list");
 						list.style.visibility = "visible";
-						game.total_point = (game.point+((main.health>0)?Math.round((-(t/410)*(t/410)+1438.5)/10):0)+main.health*5);
-						list.innerHTML = ((main.health>0)?"Congratulation!":"Failed...") + 
+						var pass = (main.health>0 ? "Congratulation!" : "You Loss...");
+						if(main.health<=0){
+							var gamepoint = 0;
+						}	
+						else if(game.time<=15000){
+							var gamepoint = (-(game.time/410)*(game.time/410)+1435.8);
+						}
+						else{
+							var gamepoint = 100;
+						} 					
+						game.total_point = (game.point+Math.round(gamepoint)+main.health*5);
+						list.innerHTML = pass + 
 							"<br><br>Point: " + game.point +
 							"<br>Time: " + Math.round(game.time/50) + " sec"+
 							"<br>Health: " + main.health +
