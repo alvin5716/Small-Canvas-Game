@@ -93,31 +93,7 @@
 					break;
 			}
 		}
-		//image
-		function keyEventEnd(event) {
-			var key_pressed = event.keyCode || event.which;
-			switch (key_pressed) {
-				case 37:
-				case 65:
-					key.left = false;
-					break;
-				case 38:
-				case 87:
-					key.up = false;
-					break;
-				case 39:
-				case 68:
-					key.right = false;
-					break;
-				case 40:
-				case 83:
-					key.down = false;
-					break;
-				case 32:
-					key.space = false;
-					break;
-			}
-		}
+
 		var m_bullets = new Array();
 		var enemies = new Array();
 		var e_bullets = new Array();
