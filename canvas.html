@@ -290,20 +290,6 @@
 					main.health -= attackedBy(main,e_bullets);
 					main.health -= attackedBy(main,enemies);
 				}
-				//main die
-				if(main.health<=0 && !game.end) {
-					game.end = true;
-					var new_enemy = Object.assign({},enemy1);
-					new_enemy.health = 10000;
-					new_enemy.show_width = 0;
-					new_enemy.show_height = 0;
-					enemies.push(new_enemy);
-					main.show_width = 0;
-					main.show_height = 0;
-					game.ticking = false;
-					game.tick = 3600;
-					main.health = 0;
-				}
 				//enemy move and injured
 				for(var i=0;i<enemies.length;++i) {
 					if(enemies[i].health<=0) {
