@@ -445,7 +445,7 @@
 				//second phase
 				if(this.phase!=2 && this.health<=1000){
 					this.phase = 2;
-					this.img.src = "img/enemy4_2.png";
+					this.img.src = "img/blue_2.png";
 					this.bullet.radius = 32;
 					this.bullet_v = 1.2;
 					this.bullet_count = 12;
@@ -510,13 +510,13 @@
 			};
 		//draw
 			var bg = new Image();
-			bg.src = "img/bg.png";
+			bg.src = "img/boss.png";
 			function clear_all() { //turn the screen to black
 				var init;
-				if(game.tick<=2750) init = 75;
+				if(game.tick<=2750) init = 213.5;
 				else if(game.tick>=3050) init = 0;
-				else init = 75*(1-(game.tick-2750)/300);
-				ctx.drawImage(bg,0,init,100,125,0,0,canvas.width,canvas.height);
+				else init = 213.5*(1-(game.tick-2750)/300);
+				ctx.drawImage(bg,0,init,150,186.5,0,0,canvas.width,canvas.height);
 			}
 			function draw_frame() {
 				clear_all();
