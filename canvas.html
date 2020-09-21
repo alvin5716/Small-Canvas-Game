@@ -33,7 +33,7 @@
 			top: 350px;
 			left: 50px;
 			font-size: 30px;
-			font-family: "微軟正黑體";
+			font-family: "標楷體";
 		}
 		#HP {
 			color: white;
@@ -41,7 +41,7 @@
 			top: 280px;
 			left: 50px;
 			font-size: 30px;
-			font-family: "微軟正黑體";
+			font-family: "標楷體";
 		}
 		#list {
 			background-color: rgb(194, 30, 30);
@@ -93,7 +93,31 @@
 					break;
 			}
 		}
-
+		//image
+		function keyEventEnd(event) {
+			var key_pressed = event.keyCode || event.which;
+			switch (key_pressed) {
+				case 37:
+				case 65:
+					key.left = false;
+					break;
+				case 38:
+				case 87:
+					key.up = false;
+					break;
+				case 39:
+				case 68:
+					key.right = false;
+					break;
+				case 40:
+				case 83:
+					key.down = false;
+					break;
+				case 32:
+					key.space = false;
+					break;
+			}
+		}
 		var m_bullets = new Array();
 		var enemies = new Array();
 		var e_bullets = new Array();
@@ -130,19 +154,19 @@
 				y: canvas.height,
 			}
 			var main = {
-  				x: frame.x/3,
-  				y: frame.y/3,
-  				x_v: 4,
+  				x: frame.x/2,
+  				y: frame.y/2,
+  				x_v: 5,
   				y_v: 5,
-  				radius: 11,
-  				attack: 12,
-  				health: 10000,
+  				radius: 10,
+  				attack: 1,
+  				health: 100,
   				img: new Image(),
   				img_timer: 0,
-  				img_width: 51,
-				img_height: 65,
-				show_width: 50,
-				show_height: 39,
+  				img_width: 50,
+				img_height: 64,
+				show_width: 49,
+				show_height: 38,
 				attack_timer: 0,
   				draw: function() {
   					if (this.img_timer>=80) this.img_timer = 0;
@@ -234,7 +258,256 @@
 				},
 			};
 			smoke.img.src = "img/smoke.png";
-		
+		//enemy
+			var enemy_sample = {
+				name: "",
+				x: 0,
+				y: 0,
+				x_v: 0,
+				y_v: 0,
+				x_a: 0,
+				y_a: 0,
+				health: 0,
+				loot: 0,
+				radius: 0,
+				attack: 0,
+				cd: 50,
+				attack_timer: 0,
+				img: undefined,
+				stopable: false,
+				bounceable: false,
+				img_timer: 0,
+				img_width: 0,
+				img_height: 0,
+				show_width: 0,
+				show_height: 0,
+				draw: function() {
+					if (this.img_timer>=80) this.img_timer = 0;
+					var init = Math.floor(this.img_timer/20)*this.img_width;
+ 			    	ctx.drawImage(this.img,init,0,this.img_width,this.img_height,this.x-(this.show_width/2),this.y-(this.show_height/2),this.show_width,this.show_height);
+  					++this.img_timer;
+				},
+				move: function() {
+					if(this.bounceable && outOfFrame_x(this)) {
+						this.x_v *= -1;
+					}
+					if(this.bounceable && outOfFrame_y(this)) {
+						this.y_v *= -1;
+					}
+					this.x += this.x_v;
+					this.y += this.y_v;
+					this.x_v += this.x_a;
+					this.y_v += this.y_a;
+				},
+				dead: function() {
+					var new_effect = Object.assign({},smoke);
+					new_effect.max_radius = this.radius;
+					new_effect.x = this.x;
+					new_effect.y = this.y;
+					effects.push(new_effect);
+				},
+				bullet: undefined,
+				skill: function() {},
+			}
+			var bullet_sample = {
+				x: 0,
+				y: 0,
+				x_v: 0,
+				y_v: 0,
+				radius: 5,
+				attack: 0,
+				color: "",
+				draw: function() {
+					ctx.beginPath();
+					ctx.arc(this.x,this.y,this.radius,0,2*Math.PI,false);
+					ctx.fillStyle = this.color;
+					ctx.fill();
+					ctx.closePath();
+				},
+				move: function() {
+					this.x += this.x_v;
+					this.y += this.y_v;
+				},
+				skill: function() {},
+			}
+			// enemy1
+			var enemy1 = Object.assign({},enemy_sample);
+			enemy1.name = "enemy1";
+			enemy1.img = new Image();
+			enemy1.img.src = "img/enemy1.png";
+			enemy1.img_width = 40;
+			enemy1.img_height = 37;
+			enemy1.show_width = 50;
+			enemy1.show_height = 48;
+			enemy1.health = 30;
+			enemy1.radius = 25;
+			enemy1.attack = 2;
+			enemy1.loot = 25;
+			// enemy2
+			var enemy2 = Object.assign({},enemy_sample);
+			enemy2.name = "enemy2";
+			enemy2.img = new Image();
+			enemy2.img.src = "img/enemy2.png";
+			enemy2.img_width = 40;
+			enemy2.img_height = 37;
+			enemy2.show_width = 50;
+			enemy2.show_height = 48;
+			enemy2.health = 60;
+			enemy2.radius = 25;
+			enemy2.attack = 1;
+			enemy2.bullet = Object.assign({},bullet_sample);
+			enemy2.bullet.attack = 10;
+			enemy2.bullet.color = "red";
+			enemy2.loot = 50;
+			enemy2.skill = function() {
+				//stop moving
+				if(this.stopable && this.y_v<=0){
+					this.y_a = 0;
+					this.y_v = 0;
+				}
+				//attack
+				if(this.attack_timer>=this.cd) {
+					var new_bullet = Object.assign({},this.bullet);
+					new_bullet.x = this.x;
+					new_bullet.y = this.y;
+					var tan = (main.x-this.x)/(main.y-this.y);
+					var cos = ((main.y<this.y)?-1:1)/Math.sqrt(tan*tan+1);
+					var sin = tan*cos;
+					new_bullet.x_v = 3*sin;
+					new_bullet.y_v = 3*cos;
+					e_bullets.push(new_bullet);
+					this.attack_timer = 0;
+				}
+				++this.attack_timer;
+			};
+			//enemy3
+			var enemy3 = Object.assign({},enemy_sample);
+			enemy3.name = "enemy3";
+			enemy3.img = new Image();
+			enemy3.img.src = "img/enemy3.png";
+			enemy3.img_width = 40;
+			enemy3.img_height = 37;
+			enemy3.show_width = 70;
+			enemy3.show_height = 65;
+			enemy3.health = 180;
+			enemy3.radius = 35;
+			enemy3.attack = 1;
+			enemy3.bullet = Object.assign({},bullet_sample);
+			enemy3.bullet.attack = 15;
+			enemy3.bullet.color = "yellow";
+			enemy3.bullet.radius = 8;
+			enemy3.loot = 150;
+			enemy3.skill = function() {
+				//stop moving
+				if(this.stopable && this.y_v<=0){
+					this.y_a = 0;
+					this.y_v = 0;
+				}
+				//attack
+				if(this.attack_timer>=this.cd) {
+					for(var i=0; i<3;++i) {
+						var new_bullet = Object.assign({},this.bullet);
+						new_bullet.x = this.x;
+						new_bullet.y = this.y;
+						var angle = (i-1)*Math.PI/5
+						new_bullet.x_v = 6*Math.sin(angle);
+						new_bullet.y_v = 6*Math.cos(angle);
+						e_bullets.push(new_bullet);
+					}
+					this.attack_timer = 0;
+				}
+				++this.attack_timer;
+			};
+			//enemy4 (boss1)
+			var enemy4 = Object.assign({},enemy_sample);
+			enemy4.name = "enemy4";
+			enemy4.img = new Image();
+			enemy4.img.src = "img/enemy4.png";
+			enemy4.img_width = 40;
+			enemy4.img_height = 46;
+			enemy4.show_width = 80;
+			enemy4.show_height = 92;
+			enemy4.health = 2500;
+			enemy4.radius = 40;
+			enemy4.attack = 5;
+			enemy4.bullet = Object.assign({},bullet_sample);
+			enemy4.bullet.attack = 15;
+			enemy4.bullet.color = "cyan";
+			enemy4.bullet.radius = 15;
+			enemy4.stopable = true;
+			enemy4.phi = 0;
+			enemy4.loot = 200;
+			enemy4.bullet_v = 5;
+			enemy4.bullet_count = 30;
+			enemy4.cd = 200;
+			enemy4.phase = 1;
+			enemy4.skill = function() {
+				//second phase
+				if(this.phase!=2 && this.health<=1000){
+					this.phase = 2;
+					this.img.src = "img/enemy4_2.png";
+					this.bullet.radius = 32;
+					this.bullet_v = 1.2;
+					this.bullet_count = 12;
+					this.bullet.color = "#8823F4";
+					this.attack_timer = 0;
+					setTimeout(()=>{
+						this.phi = 0;
+						this.attack_timer = 0;
+						this.cd = 140;
+					}, 1000);
+				}
+				//stop moving
+				if(this.stopable && this.y_v<=0){
+					this.y_a = 0;
+					this.y_v = 0;
+				}
+				//attack
+				if(this.attack_timer>=this.cd) {
+					++this.phi;
+					if(!((this.phi==4||this.phi==8)&&this.phase==1)){
+						for(var i=-(this.bullet_count/2)+1; i<=this.bullet_count/2;++i) {
+							var new_bullet = Object.assign({},this.bullet);
+							new_bullet.x = this.x;
+							new_bullet.y = this.y;
+							var angle = this.phi*Math.PI/(this.bullet_count*2) + i*Math.PI/(this.bullet_count/2);
+							new_bullet.x_v = this.bullet_v*Math.sin(angle);
+							new_bullet.y_v = this.bullet_v*Math.cos(angle);
+							e_bullets.push(new_bullet);
+						}
+					}
+					if(this.phi==4) {
+						for(var i=-1;i<=1;++i){
+							var new_enemy = Object.assign({},enemy1);
+							new_enemy.x = this.x;
+							new_enemy.y = this.y;
+							new_enemy.x_v = i;
+							new_enemy.y_v = -6;
+							new_enemy.y_a = 0.1;
+							new_enemy.show_width = 70;
+							new_enemy.show_height = 66;
+							new_enemy.radius = 35;
+							new_enemy.loot = 0;
+							new_enemy.health = 100;
+							enemies.push(new_enemy);
+						}
+					} else if(this.phi>=8) {
+						this.phi = 0;
+						for(var i=0;i<2;++i){
+							var new_enemy = Object.assign({},enemy3);
+							new_enemy.x = this.x;
+							new_enemy.y = this.y;
+							new_enemy.x_v = (i===0)?-1:1;
+							new_enemy.health = 100;
+							new_enemy.cd = 50;
+							new_enemy.loot = 0;
+							enemies.push(new_enemy);
+						}
+					}
+					this.attack_timer = 0;
+				}
+				++this.attack_timer;
+			};
 		//draw
 			var bg = new Image();
 			bg.src = "img/bg.png";
